@@ -1,47 +1,86 @@
-<script setup>
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
+<script>
+import axios from "axios";
+import CurrencyInput from "./components/CurrencyInput.vue";
+
+
+export default {
+  components: { CurrencyInput },
+  data() {
+    return {
+      currencies: [],
+      initialCurrency: "EUR",
+      convertedCurrency: "USD",
+      amountFrom: 1,
+      amountTo: 0,
+    };
+  },
+  async created() {
+    try {
+      const response = await axios.get("https://api.frankfurter.app/currencies");
+      this.currencies = Object.keys(response.data);
+    } catch (error) {
+      console.error("Errore nel caricamento delle valute", error);
+    }
+    this.convert(); // Conversione iniziale
+  },
+  methods: {
+    updateAmountFrom(amount) { this.amountFrom = amount; this.convert(); },
+    updateCurrencyFrom(currency) { this.initialCurrency = currency; this.convert(); },
+    updateAmountTo(amount) { this.amountTo = amount; },
+    updateCurrencyTo(currency) { this.convertedCurrency = currency; this.convert(); },
+    async convert() {
+      if (this.initialCurrency !== this.convertedCurrency) {
+        const response = await axios.get(`https://api.frankfurter.app/latest?amount=${this.amountFrom}&from=${this.initialCurrency}&to=${this.convertedCurrency}`);
+        this.amountTo = response.data.rates[this.convertedCurrency].toFixed(2); // Mostra con due decimali
+      } else {
+        this.amountTo = this.amountFrom;
+      }
+    },
+  },
+};
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
+  <div id="app" class="container">
+    <h1>Convertitore di Valute</h1>
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
+
+    <div class="conversion-result">
+      <p>{{ amountFrom }} {{ currencyFrom }} è circa {{ amountTo }} {{ currencyTo }}</p>
     </div>
-  </header>
 
-  <main>
-    <TheWelcome />
-  </main>
+    <CurrencyInput :currencies="currencies" :amount="amountFrom" :selectedCurrency="initialCurrency"
+      @update-amount="updateAmountFrom" @update-currency="updateCurrencyFrom"
+      :selectedCurrencyOther="convertedCurrency" />
+
+    <CurrencyInput :currencies="currencies" :amount="amountTo" :selectedCurrency="cconvertedCurrency"
+      @update-amount="updateAmountTo" @update-currency="updateCurrencyTo" :selectedCurrencyOther="initialCurrency" />
+
+  </div>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
+<style>
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+  text-align: center;
+  font-family: Arial, sans-serif;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
+h1 {
+  font-size: 2em;
+  color: #333;
+  margin-bottom: 20px;
 }
 
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
+.conversion-result {
+  font-size: 1.2em;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #4caf50;
 }
 </style>
